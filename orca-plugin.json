@@ -2,7 +2,7 @@
   "manifestVersion": 2,
   "id": "docker-logs",
   "name": "Docker Logs",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Your Docker Compose containers in Orca: live logs with errors highlighted, stack traces that open the code, CPU and memory history, ports, start/stop/rebuild, a shell, and Ask agent.",
   "author": {
     "name": "Maksim Shevchuk"
@@ -56,6 +56,14 @@
         "type": "string",
         "default": "",
         "placeholder": "/usr/local/bin/docker"
+      },
+      {
+        "key": "defaultComposeFiles",
+        "title": "Default Compose files",
+        "description": "Workspace-relative Compose files (comma separated) used in every workspace that has them and no own Compose settings, such as devop/docker-compose.yml. A .env next to the first file is used for its variables.",
+        "type": "string",
+        "default": "",
+        "placeholder": "devop/docker-compose.yml"
       },
       {
         "key": "agent",

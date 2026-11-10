@@ -4,7 +4,7 @@ import { realpath } from 'node:fs/promises'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import type { OrcaWorkerApi } from 'orca/worker'
 import { buildRows, byTime, containerLines, fail, findDocker, lines, newestWithin, parseConfig, parseInspect, parseStats, run, shellQuote, type Container, type ComposeConfig } from './docker'
-import { composeArgs, composeEnvFile, defaultOptions, validateOptions } from './compose'
+import { composeArgs, composeEnvFile, defaultFiles, defaultOptions, validateOptions } from './compose'
 import { diagnosticSummary } from './diagnostics'
 import { latestTime } from './log-time'
 import type { ComposeOptions, DockerContext, FocusContext, LogAnswer, LogLine, ProjectAction, Requests, ServiceAction, ServiceRow, Workspace } from './protocol'
@@ -108,7 +108,9 @@ export default function activate(orca: OrcaWorkerApi): void {
   }
   async function optionsFor(path: string): Promise<ComposeOptions> {
     const saved = await orca.storage.get(keyFor('compose', path)) as ComposeOptions | null
-    return saved && Array.isArray(saved.files) && Array.isArray(saved.profiles) ? saved : defaultOptions()
+    if (saved && Array.isArray(saved.files) && Array.isArray(saved.profiles)) return saved
+    // No workspace-specific choice yet: the plugin-wide default files, where this workspace has them.
+    return { ...defaultOptions(), files: await defaultFiles(path, await orca.settings.get('defaultComposeFiles')) }
   }
   async function composeConfig(path: string, bin: string, fresh = false, override?: ComposeOptions, signal?: AbortSignal): Promise<ConfigEntry> {
     const options = override ?? await optionsFor(path)

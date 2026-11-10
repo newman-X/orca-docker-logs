@@ -371,6 +371,32 @@ test('persists Compose files/profiles per workspace and applies them to commands
   } finally { await worker.deactivate() }
 })
 
+test('uses the default Compose files setting and the .env next to the first file', async () => {
+  const { worker, host, project, plain, docker, args } = await setup()
+  try {
+    host.options.settings!.defaultComposeFiles = 'devop/docker-compose.yml, missing.yml'
+    await mkdir(join(project, 'devop'))
+    await writeFile(join(project, 'devop', 'docker-compose.yml'), 'services: {}\n')
+    await writeFile(join(project, 'devop', '.env'), 'COMPOSE_PROJECT_NAME=proj\n')
+    await writeFile(join(project, '.env'), 'APP_ENV=dev\n')
+    assert.deepEqual(await worker.request('compose.get', { path: project }), { options: { files: ['devop/docker-compose.yml'], profiles: [] } })
+    assert.deepEqual(await worker.request('compose.get', { path: plain }), { options: { files: [], profiles: [] } })
+    await worker.request('services.list', { path: project, fresh: true })
+    assert.ok((await args()).includes('compose --env-file devop/.env -f devop/docker-compose.yml --profile web config --format json'))
+    await worker.request('project.action', { path: project, action: 'up' })
+    const call = host.callsOf('terminal.create').at(-1) as { command: string }
+    assert.equal(call.command, `cd ${project} && ${docker} --context default compose --env-file devop/.env -f devop/docker-compose.yml up -d`)
+    // A workspace's own Compose settings win over the default.
+    await mkdir(join(project, 'infra'))
+    await writeFile(join(project, 'infra', 'stack.yml'), 'services: {}\n')
+    const options = { files: ['infra/stack.yml'], profiles: [] }
+    await worker.request('compose.set', { path: project, options })
+    assert.deepEqual(await worker.request('compose.get', { path: project }), { options })
+    await worker.request('services.list', { path: project, fresh: true })
+    assert.ok((await args()).includes('compose --env-file .env -f infra/stack.yml --profile web config --format json'))
+  } finally { await worker.deactivate() }
+})
+
 test('agent hand-off includes fresh OOM, health, restart and Docker context diagnostics', async () => {
   const { worker, host, project, root } = await setup()
   try {

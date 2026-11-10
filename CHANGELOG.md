@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 (newman-X fork)
+
+- Add the "Default Compose files" setting: workspace-relative files (such as `devop/docker-compose.yml`) used in every workspace that has them and no own Compose settings, so new worktrees work without setup.
+- With custom Compose files, use the `.env` next to the first file (such as `devop/.env`) when it exists, so a stack in a subfolder keeps its own variables and project name; else the workspace's `.env` as before.
+
 ## 0.4.0
 
 - Ignore stale project, service and log responses, including polls completing after Clear.

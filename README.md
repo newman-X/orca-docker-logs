@@ -83,6 +83,7 @@ export. If one container disappears during rebuild, its error appears alongside 
 | Setting                       | Default  | What it does                                               |
 | ----------------------------- | -------- | ---------------------------------------------------------- |
 | Docker CLI path               | (empty)  | Where `docker` is, when it is not found on its own         |
+| Default Compose files         | (empty)  | Files such as `devop/docker-compose.yml` used in every workspace that has them; a `.env` next to the first file is used |
 | Agent for “Ask agent”         | `claude` | Agent Orca starts with the log, such as `codex`            |
 | Notify when a container fails | on       | Desktop notifications from the status bar watcher          |
 

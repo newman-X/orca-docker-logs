@@ -1,5 +1,5 @@
 import { realpath, stat } from 'node:fs/promises'
-import { isAbsolute, join, relative, resolve, sep } from 'node:path'
+import { isAbsolute, join, posix, relative, resolve, sep } from 'node:path'
 import { fail } from './docker'
 import type { ComposeOptions } from './protocol'
 
@@ -9,11 +9,29 @@ export function composeArgs(options: ComposeOptions, profiles = options.profiles
   return ['compose', ...(envFile ? ['--env-file', envFile] : []), ...options.files.flatMap((file) => ['-f', file]), ...[...new Set(profiles)].flatMap((p) => ['--profile', p])]
 }
 
-/** Older Compose versions switch dotenv discovery to the first -f directory. Keep workspace
- * variables when selecting custom files, while preserving that file's build/bind path base. */
+/** Older Compose versions switch dotenv discovery to the first -f directory. Pin it explicitly:
+ * a `.env` next to the first custom file wins (a stack in a subfolder such as `devop/` keeps its
+ * own variables and project name), else the workspace's `.env`. Build/bind paths still resolve
+ * from the first Compose file. */
 export async function composeEnvFile(path: string, options: ComposeOptions): Promise<string | undefined> {
   if (!options.files.length || process.env.COMPOSE_ENV_FILES || /^(true|1)$/i.test(process.env.COMPOSE_DISABLE_ENV_FILE ?? '')) return undefined
-  return await stat(join(path, '.env')).then((entry) => entry.isFile() ? '.env' : undefined, () => undefined)
+  const isFile = (file: string) => stat(join(path, file)).then((entry) => entry.isFile(), () => false)
+  const dir = posix.dirname(options.files[0])
+  if (dir !== '.' && await isFile(posix.join(dir, '.env'))) return posix.join(dir, '.env')
+  return await isFile('.env') ? '.env' : undefined
+}
+
+/** The Compose files from the plugin-wide default setting (one per line or comma separated) that
+ * exist inside this workspace; files a workspace does not have are skipped. */
+export async function defaultFiles(path: string, setting: unknown): Promise<string[]> {
+  if (typeof setting !== 'string') return []
+  const wanted = setting.split(/[\n,]/).map((file) => file.trim()).filter(Boolean).slice(0, 10)
+  const found: string[] = []
+  for (const file of wanted) {
+    const valid = await validateOptions(path, { files: [file], profiles: [] }).catch(() => null)
+    if (valid) found.push(...valid.files)
+  }
+  return [...new Set(found)]
 }
 
 export async function validateOptions(path: string, value: ComposeOptions): Promise<ComposeOptions> {
