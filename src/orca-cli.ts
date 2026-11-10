@@ -1,12 +1,19 @@
 // The `orca` CLI, for what Orca's plugin API does not offer: which workspace a terminal belongs
 // to, bringing a terminal to the front, and opening a file at a line.
-import { dirname, join } from 'node:path'
+import { homedir } from 'node:os'
+import { dirname, isAbsolute, join } from 'node:path'
 import { run } from './docker'
 
-/** The CLI inside the app bundle the worker runs from, then whatever `orca` is on PATH. */
-function candidates(): string[] {
-  const bundled = join(dirname(process.execPath), '..', 'Resources', 'bin', 'orca')
-  return process.platform === 'darwin' ? [bundled, 'orca'] : ['orca']
+/**
+ * The CLI inside the app bundle the worker runs from, then whatever `orca` is on PATH. On Linux a
+ * bare `orca` usually resolves to /usr/bin/orca, the GNOME screen reader, so only Orca's own CLI
+ * shim is used there: ORCA_CLI_COMMAND, else the shim in Orca's user data folder.
+ */
+export function candidates(env: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform): string[] {
+  if (platform === 'darwin') return [join(dirname(process.execPath), '..', 'Resources', 'bin', 'orca'), 'orca']
+  if (platform !== 'linux') return ['orca']
+  const shim = join(env.ORCA_USER_DATA_PATH || join(homedir(), '.config', 'orca'), 'linux-orca-cli-shim', 'orca')
+  return [...new Set([env.ORCA_CLI_COMMAND, shim].filter((cli): cli is string => !!cli && isAbsolute(cli)))]
 }
 
 /** Runs `orca <args> --json` and returns its `result`; rejects when no CLI answers. */

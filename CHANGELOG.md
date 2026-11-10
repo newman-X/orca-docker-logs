@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2 (newman-X fork)
+
+- Linux: call Orca's CLI shim (`ORCA_CLI_COMMAND` or `~/.config/orca/linux-orca-cli-shim/orca`) instead of a bare `orca`, which is the GNOME screen reader there.
+
 ## 0.4.1 (newman-X fork)
 
 - Add the "Default Compose files" setting: workspace-relative files (such as `devop/docker-compose.yml`) used in every workspace that has them and no own Compose settings, so new worktrees work without setup.

@@ -84,6 +84,7 @@ async function setup() {
   await writeFile(join(root, 'bin', 'orca'), FAKE_ORCA)
   await chmod(join(root, 'bin', 'orca'), 0o755)
   process.env.PATH = `${join(root, 'bin')}:${ORIGINAL_PATH}`
+  process.env.ORCA_CLI_COMMAND = join(root, 'bin', 'orca')
   const host = mockHost({
     settings: { dockerPath: docker, agent: 'codex' },
     results: {
